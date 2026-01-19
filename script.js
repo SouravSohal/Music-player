@@ -1,0 +1,189 @@
+// Music Player JavaScript
+
+class MusicPlayer {
+    constructor() {
+        this.audio = document.getElementById('audio');
+        this.playBtn = document.getElementById('play-btn');
+        this.prevBtn = document.getElementById('prev-btn');
+        this.nextBtn = document.getElementById('next-btn');
+        this.volumeSlider = document.getElementById('volume-slider');
+        this.progressBar = document.querySelector('.progress-bar');
+        this.progress = document.querySelector('.progress');
+        this.currentTimeEl = document.querySelector('.current-time');
+        this.durationTimeEl = document.querySelector('.duration-time');
+        this.songTitle = document.querySelector('.song-title');
+        this.artistName = document.querySelector('.artist-name');
+        this.playlistEl = document.getElementById('playlist');
+        this.playIcon = document.querySelector('.play-icon');
+        this.pauseIcon = document.querySelector('.pause-icon');
+        
+        this.currentSongIndex = 0;
+        this.isPlaying = false;
+        
+        // Sample playlist - using royalty-free sample audio URLs
+        this.playlist = [
+            {
+                title: 'Summer Vibes',
+                artist: 'Artist 1',
+                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+            },
+            {
+                title: 'Chill Beats',
+                artist: 'Artist 2',
+                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
+            },
+            {
+                title: 'Night Drive',
+                artist: 'Artist 3',
+                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
+            },
+            {
+                title: 'Acoustic Dreams',
+                artist: 'Artist 4',
+                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
+            },
+            {
+                title: 'Electronic Waves',
+                artist: 'Artist 5',
+                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3'
+            }
+        ];
+        
+        this.init();
+    }
+    
+    init() {
+        this.renderPlaylist();
+        this.loadSong(0);
+        this.setupEventListeners();
+        
+        // Set initial volume
+        this.audio.volume = this.volumeSlider.value / 100;
+    }
+    
+    setupEventListeners() {
+        // Play/Pause button
+        this.playBtn.addEventListener('click', () => this.togglePlay());
+        
+        // Previous and Next buttons
+        this.prevBtn.addEventListener('click', () => this.prevSong());
+        this.nextBtn.addEventListener('click', () => this.nextSong());
+        
+        // Volume control
+        this.volumeSlider.addEventListener('input', (e) => {
+            this.audio.volume = e.target.value / 100;
+        });
+        
+        // Progress bar
+        this.progressBar.addEventListener('click', (e) => {
+            const rect = this.progressBar.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            this.audio.currentTime = percent * this.audio.duration;
+        });
+        
+        // Audio events
+        this.audio.addEventListener('timeupdate', () => this.updateProgress());
+        this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
+        this.audio.addEventListener('ended', () => this.nextSong());
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                this.togglePlay();
+            } else if (e.code === 'ArrowRight') {
+                this.nextSong();
+            } else if (e.code === 'ArrowLeft') {
+                this.prevSong();
+            }
+        });
+    }
+    
+    renderPlaylist() {
+        this.playlistEl.innerHTML = '';
+        this.playlist.forEach((song, index) => {
+            const li = document.createElement('li');
+            li.className = 'playlist-item';
+            if (index === this.currentSongIndex) {
+                li.classList.add('active');
+            }
+            li.innerHTML = `
+                <div class="playlist-item-title">${song.title}</div>
+                <div class="playlist-item-artist">${song.artist}</div>
+            `;
+            li.addEventListener('click', () => this.loadSong(index, true));
+            this.playlistEl.appendChild(li);
+        });
+    }
+    
+    loadSong(index, autoPlay = false) {
+        this.currentSongIndex = index;
+        const song = this.playlist[index];
+        
+        this.audio.src = song.src;
+        this.songTitle.textContent = song.title;
+        this.artistName.textContent = song.artist;
+        
+        this.renderPlaylist();
+        
+        if (autoPlay) {
+            this.play();
+        }
+    }
+    
+    togglePlay() {
+        if (this.isPlaying) {
+            this.pause();
+        } else {
+            this.play();
+        }
+    }
+    
+    play() {
+        this.audio.play();
+        this.isPlaying = true;
+        this.playIcon.style.display = 'none';
+        this.pauseIcon.style.display = 'block';
+    }
+    
+    pause() {
+        this.audio.pause();
+        this.isPlaying = false;
+        this.playIcon.style.display = 'block';
+        this.pauseIcon.style.display = 'none';
+    }
+    
+    prevSong() {
+        this.currentSongIndex = (this.currentSongIndex - 1 + this.playlist.length) % this.playlist.length;
+        this.loadSong(this.currentSongIndex, this.isPlaying);
+    }
+    
+    nextSong() {
+        this.currentSongIndex = (this.currentSongIndex + 1) % this.playlist.length;
+        this.loadSong(this.currentSongIndex, this.isPlaying);
+    }
+    
+    updateProgress() {
+        if (this.audio.duration) {
+            const percent = (this.audio.currentTime / this.audio.duration) * 100;
+            this.progress.style.width = percent + '%';
+            this.currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+        }
+    }
+    
+    updateDuration() {
+        this.durationTimeEl.textContent = this.formatTime(this.audio.duration);
+    }
+    
+    formatTime(seconds) {
+        if (isNaN(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+}
+
+// Initialize the music player when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new MusicPlayer();
+});
