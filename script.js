@@ -114,11 +114,11 @@ class MusicPlayer {
             
             const titleDiv = document.createElement('div');
             titleDiv.className = 'playlist-item-title';
-            titleDiv.textContent = song.title;
+            titleDiv.textContent = String(song.title || 'Unknown Title');
             
             const artistDiv = document.createElement('div');
             artistDiv.className = 'playlist-item-artist';
-            artistDiv.textContent = song.artist;
+            artistDiv.textContent = String(song.artist || 'Unknown Artist');
             
             li.appendChild(titleDiv);
             li.appendChild(artistDiv);
@@ -132,16 +132,17 @@ class MusicPlayer {
         const song = this.playlist[index];
         
         // Validate and sanitize the audio source
-        // Only allow relative paths to prevent SSRF attacks
-        if (song.src && !song.src.match(/^(https?:|\/\/|javascript:)/i)) {
+        // Only allow relative paths from audio directory to prevent SSRF attacks
+        if (song.src && typeof song.src === 'string' && song.src.match(/^audio\//i)) {
             this.audio.src = song.src;
         } else {
-            console.error('Invalid audio source:', song.src);
+            console.error('Invalid audio source (must start with "audio/"):', song.src);
             this.audio.src = '';
         }
         
-        this.songTitle.textContent = song.title;
-        this.artistName.textContent = song.artist;
+        // Validate and set song metadata with fallbacks
+        this.songTitle.textContent = String(song.title || 'Unknown Title');
+        this.artistName.textContent = String(song.artist || 'Unknown Artist');
         
         this.renderPlaylist();
         
