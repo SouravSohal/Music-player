@@ -21,7 +21,8 @@ class MusicPlayer {
         this.isPlaying = false;
         
         // Sample playlist - Note: Replace with your own audio files
-        // For production use, host audio files on the same domain or use HTTPS URLs
+        // IMPORTANT: If serving your page over HTTPS, audio files must also be HTTPS
+        // or hosted on the same domain to avoid mixed content security blocks
         this.playlist = [
             {
                 title: 'Summer Vibes',
@@ -77,7 +78,7 @@ class MusicPlayer {
         
         // Progress bar
         this.progressBar.addEventListener('click', (e) => {
-            if (this.audio.duration && !isNaN(this.audio.duration)) {
+            if (!isNaN(this.audio.duration)) {
                 const rect = this.progressBar.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
                 this.audio.currentTime = percent * this.audio.duration;
