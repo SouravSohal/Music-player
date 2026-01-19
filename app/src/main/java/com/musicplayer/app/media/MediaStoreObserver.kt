@@ -154,24 +154,25 @@ class MediaStoreObserver @Inject constructor(
     ): Flow<MediaChangeEvent> = callbackFlow {
         val handler = Handler(Looper.getMainLooper())
         var previousCount = getMediaCount(uri)
+        val observedUri = uri // Capture uri for use in inner class
         
         val observer = object : ContentObserver(handler) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
+            override fun onChange(selfChange: Boolean, changedUri: Uri?) {
                 try {
-                    Timber.d("MediaStore change detected: uri=$uri, selfChange=$selfChange")
+                    Timber.d("MediaStore change detected: uri=$changedUri, selfChange=$selfChange")
                     
-                    val currentCount = getMediaCount(this@MediaStoreObserver.uri)
+                    val currentCount = getMediaCount(observedUri)
                     val event = when {
-                        uri == null -> MediaChangeEvent.UnknownChange(this@MediaStoreObserver.uri)
+                        changedUri == null -> MediaChangeEvent.UnknownChange(observedUri)
                         currentCount > previousCount -> {
                             previousCount = currentCount
-                            MediaChangeEvent.MediaAdded(uri, mediaType)
+                            MediaChangeEvent.MediaAdded(changedUri, mediaType)
                         }
                         currentCount < previousCount -> {
                             previousCount = currentCount
-                            MediaChangeEvent.MediaDeleted(uri, mediaType)
+                            MediaChangeEvent.MediaDeleted(changedUri, mediaType)
                         }
-                        else -> MediaChangeEvent.MediaModified(uri, mediaType)
+                        else -> MediaChangeEvent.MediaModified(changedUri, mediaType)
                     }
                     
                     trySend(event).isSuccess.also { success ->

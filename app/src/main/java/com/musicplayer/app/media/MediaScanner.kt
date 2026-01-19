@@ -601,6 +601,10 @@ class MediaScanner @Inject constructor(
      * starting with the folder path. Note: This will match subfolders too,
      * so additional filtering in code is necessary for exact folder match.
      * 
+     * SQL Injection Safety: ContentResolver.query() uses parameterized queries
+     * where selection args are automatically escaped. The escaping here is for
+     * SQL LIKE special characters (%, _) which have special meaning in LIKE queries.
+     * 
      * @param folderPath Folder path to filter
      * @param minDuration Minimum duration in milliseconds
      * @return Array of selection argument values
@@ -609,8 +613,9 @@ class MediaScanner @Inject constructor(
         val args = mutableListOf<String>()
         
         args.add("1") // IS_MUSIC = 1
-        // Escape special SQL characters and add pattern for LIKE query
-        val escapedPath = folderPath.replace("'", "''").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        // Escape LIKE special characters (%, _, \) for SQL LIKE pattern matching
+        // ContentResolver.query() with selection args provides SQL injection protection
+        val escapedPath = folderPath.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         args.add("$escapedPath/%") // DATA LIKE folderPath/%
         
         if (minDuration > 0) {
