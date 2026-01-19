@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Music Player</string>
+    
+    <!-- Playback controls -->
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="repeat">Repeat</string>
+    <string name="shuffle">Shuffle</string>
+    
+    <!-- Navigation -->
+    <string name="nav_songs">Songs</string>
+    <string name="nav_albums">Albums</string>
+    <string name="nav_artists">Artists</string>
+    <string name="nav_playlists">Playlists</string>
+    <string name="nav_folders">Folders</string>
+    <string name="nav_settings">Settings</string>
+    
+    <!-- Library -->
+    <string name="scan_media">Scan Media</string>
+    <string name="scanning">Scanning…</string>
+    <string name="no_songs">No songs found</string>
+    <string name="songs_count">%d songs</string>
+    
+    <!-- Playlists -->
+    <string name="create_playlist">Create Playlist</string>
+    <string name="playlist_name">Playlist Name</string>
+    <string name="add_to_playlist">Add to Playlist</string>
+    <string name="remove_from_playlist">Remove from Playlist</string>
+    
+    <!-- Audio Enhancement -->
+    <string name="equalizer">Equalizer</string>
+    <string name="bass_boost">Bass Boost</string>
+    <string name="virtualizer">Virtualizer</string>
+    <string name="reverb">Reverb</string>
+    <string name="audio_effects">Audio Effects</string>
+    
+    <!-- Downloader -->
+    <string name="download">Download</string>
+    <string name="enter_url">Enter URL</string>
+    <string name="downloading">Downloading…</string>
+    <string name="download_complete">Download Complete</string>
+    <string name="download_failed">Download Failed</string>
+    
+    <!-- Converter -->
+    <string name="convert">Convert</string>
+    <string name="video_to_audio">Video to Audio</string>
+    <string name="select_format">Select Format</string>
+    <string name="converting">Converting…</string>
+    <string name="conversion_complete">Conversion Complete</string>
+    
+    <!-- Permissions -->
+    <string name="permission_required">Permission Required</string>
+    <string name="storage_permission_rationale">Storage permission is required to access your music files.</string>
+    <string name="notification_permission_rationale">Notification permission is required for playback controls.</string>
+    <string name="grant_permission">Grant Permission</string>
+    
+    <!-- Settings -->
+    <string name="theme">Theme</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="crossfade_duration">Crossfade Duration</string>
+    <string name="gapless_playback">Gapless Playback</string>
+    <string name="audio_quality">Audio Quality</string>
+    
+    <!-- Errors -->
+    <string name="error_loading_media">Error loading media</string>
+    <string name="error_invalid_url">Invalid URL</string>
+    <string name="error_network">Network error</string>
+    <string name="error_playback">Playback error</string>
+</resources>
