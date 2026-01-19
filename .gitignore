@@ -1,0 +1,15 @@
+# Audio files
+audio/*.mp3
+audio/*.wav
+audio/*.ogg
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
