@@ -489,4 +489,127 @@ class MediaScanner @Inject constructor(
 
         return args.toTypedArray()
     }
+
+    /**
+     * Queries audio files in a specific folder path from MediaStore.
+     * 
+     * This method is optimized to query only files in the specified folder
+     * without scanning the entire library.
+     * 
+     * @param folderPath Absolute path to the folder
+     * @param minDuration Minimum duration in milliseconds
+     * @return List of audio files in the folder
+     */
+    suspend fun getAudioFilesInFolder(
+        folderPath: String,
+        minDuration: Long = 30_000
+    ): List<AudioFile> = withContext(Dispatchers.IO) {
+        val audioFiles = mutableListOf<AudioFile>()
+        
+        try {
+            val uri = getMediaStoreUri()
+            val projection = getProjection()
+            val selection = buildSelectionWithFolder(minDuration)
+            val selectionArgs = buildSelectionArgsWithFolder(folderPath, minDuration)
+            val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+
+            contentResolver.query(
+                uri,
+                projection,
+                selection,
+                selectionArgs,
+                sortOrder
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    try {
+                        val audioFile = extractAudioFileFromCursor(cursor)
+                        if (audioFile.folderPath == folderPath) {
+                            audioFiles.add(audioFile)
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error processing audio file")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error querying folder: $folderPath")
+        }
+        
+        audioFiles
+    }
+
+    /**
+     * Checks if a folder contains any audio files.
+     * 
+     * Optimized to return as soon as the first audio file is found.
+     * 
+     * @param folderPath Absolute path to the folder
+     * @param minDuration Minimum duration in milliseconds
+     * @return true if the folder contains at least one audio file
+     */
+    suspend fun containsAudioFiles(
+        folderPath: String,
+        minDuration: Long = 30_000
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val uri = getMediaStoreUri()
+            val projection = arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DATA)
+            val selection = buildSelectionWithFolder(minDuration)
+            val selectionArgs = buildSelectionArgsWithFolder(folderPath, minDuration)
+
+            contentResolver.query(
+                uri,
+                projection,
+                selection,
+                selectionArgs,
+                null
+            )?.use { cursor ->
+                // If cursor has any results, the folder contains audio files
+                return@withContext cursor.count > 0
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error checking folder: $folderPath")
+        }
+        
+        false
+    }
+
+    /**
+     * Builds the selection clause with folder path filter.
+     * 
+     * @param minDuration Minimum duration in milliseconds
+     * @return Selection clause string
+     */
+    private fun buildSelectionWithFolder(minDuration: Long): String {
+        val conditions = mutableListOf<String>()
+        
+        conditions.add("${MediaStore.Audio.Media.IS_MUSIC} = ?")
+        conditions.add("${MediaStore.Audio.Media.DATA} LIKE ?")
+        
+        if (minDuration > 0) {
+            conditions.add("${MediaStore.Audio.Media.DURATION} >= ?")
+        }
+
+        return conditions.joinToString(" AND ")
+    }
+
+    /**
+     * Builds the selection arguments array with folder path.
+     * 
+     * @param folderPath Folder path to filter
+     * @param minDuration Minimum duration in milliseconds
+     * @return Array of selection argument values
+     */
+    private fun buildSelectionArgsWithFolder(folderPath: String, minDuration: Long): Array<String> {
+        val args = mutableListOf<String>()
+        
+        args.add("1") // IS_MUSIC = 1
+        args.add("$folderPath/%") // DATA LIKE folderPath/%
+        
+        if (minDuration > 0) {
+            args.add(minDuration.toString())
+        }
+
+        return args.toTypedArray()
+    }
 }

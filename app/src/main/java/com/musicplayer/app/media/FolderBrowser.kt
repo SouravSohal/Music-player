@@ -181,6 +181,9 @@ class FolderBrowser @Inject constructor(
     /**
      * Gets audio files in a specific folder (without subfolders).
      * 
+     * This method uses optimized MediaStore queries to fetch only files
+     * in the specified folder without scanning the entire library.
+     * 
      * @param folderPath Absolute path to the folder
      * @param minDuration Minimum duration in milliseconds
      * @return List of audio files in the folder
@@ -189,21 +192,12 @@ class FolderBrowser @Inject constructor(
         folderPath: String,
         minDuration: Long = 30_000
     ): List<MediaScanner.AudioFile> = withContext(Dispatchers.IO) {
-        val files = mutableListOf<MediaScanner.AudioFile>()
-        
         try {
-            mediaScanner.scanAudioFiles(minDuration).collect { result ->
-                result.onSuccess { data ->
-                    if (data is MediaScanner.ScanResult) {
-                        files.addAll(data.audioFiles.filter { it.folderPath == folderPath })
-                    }
-                }
-            }
+            mediaScanner.getAudioFilesInFolder(folderPath, minDuration)
         } catch (e: Exception) {
             Timber.e(e, "Error getting audio files in folder: $folderPath")
+            emptyList()
         }
-        
-        files.sortedBy { it.title }
     }
 
     /**
@@ -242,6 +236,9 @@ class FolderBrowser @Inject constructor(
     /**
      * Checks if a folder contains audio files (directly or in subfolders).
      * 
+     * This method uses an optimized query that returns as soon as the first
+     * audio file is found, without scanning the entire library.
+     * 
      * @param folderPath Absolute path to the folder
      * @param minDuration Minimum duration in milliseconds
      * @return true if the folder contains audio files
@@ -251,20 +248,11 @@ class FolderBrowser @Inject constructor(
         minDuration: Long = 30_000
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            mediaScanner.scanAudioFiles(minDuration).collect { result ->
-                result.onSuccess { data ->
-                    if (data is MediaScanner.ScanResult) {
-                        return@withContext data.audioFiles.any { 
-                            it.folderPath.startsWith(folderPath)
-                        }
-                    }
-                }
-            }
+            mediaScanner.containsAudioFiles(folderPath, minDuration)
         } catch (e: Exception) {
             Timber.e(e, "Error checking if folder contains audio files: $folderPath")
+            false
         }
-        
-        false
     }
 
     /**
