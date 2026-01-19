@@ -111,7 +111,7 @@ class FolderBrowser @Inject constructor(
      * Browses a specific folder and returns its contents.
      * 
      * This method retrieves all audio files in the specified folder along with
-     * information about subfolders.
+     * information about subfolders. Uses optimized queries where possible.
      * 
      * @param folderPath Absolute path to the folder to browse
      * @param includeSubfolders Whether to include files from subfolders
@@ -126,25 +126,61 @@ class FolderBrowser @Inject constructor(
         try {
             Timber.d("Browsing folder: $folderPath (includeSubfolders=$includeSubfolders)")
             
-            val allFiles = mutableListOf<MediaScanner.AudioFile>()
-            val subFolderMap = mutableMapOf<String, MutableList<MediaScanner.AudioFile>>()
-            
-            // Collect all audio files
-            mediaScanner.scanAudioFiles(minDuration).collect { result ->
-                result.onSuccess { data ->
-                    if (data is MediaScanner.ScanResult) {
-                        data.audioFiles.forEach { audioFile ->
-                            when {
-                                // Exact folder match
-                                audioFile.folderPath == folderPath -> {
-                                    allFiles.add(audioFile)
+            if (!includeSubfolders) {
+                // Simple case: just get files in this folder
+                val files = mediaScanner.getAudioFilesInFolder(folderPath, minDuration)
+                val folder = createAudioFolder(folderPath, files)
+                
+                // Get subfolder information by scanning
+                val subFolderMap = mutableMapOf<String, MutableList<MediaScanner.AudioFile>>()
+                mediaScanner.scanAudioFiles(minDuration).collect { result ->
+                    result.onSuccess { data ->
+                        if (data is MediaScanner.ScanResult) {
+                            data.audioFiles.forEach { audioFile ->
+                                if (isDirectSubfolder(folderPath, audioFile.folderPath)) {
+                                    val subFolder = getDirectSubfolderPath(folderPath, audioFile.folderPath)
+                                    val subFiles = subFolderMap.getOrPut(subFolder) { mutableListOf() }
+                                    subFiles.add(audioFile)
                                 }
-                                // Subfolder match (if including subfolders)
-                                includeSubfolders && audioFile.folderPath.startsWith("$folderPath/") -> {
-                                    allFiles.add(audioFile)
+                            }
+                        }
+                    }
+                }
+                
+                val subFolders = subFolderMap.map { (path, subFiles) ->
+                    createAudioFolder(path, subFiles)
+                }.sortedBy { it.name }
+                
+                val result = FolderBrowseResult(
+                    folder = folder,
+                    audioFiles = files.sortedBy { it.title },
+                    subFolders = subFolders
+                )
+                
+                Timber.d("Folder browse complete: ${files.size} files, ${subFolders.size} subfolders")
+                emit(Result.success(result))
+            } else {
+                // Complex case: need all files including subfolders
+                val allFiles = mutableListOf<MediaScanner.AudioFile>()
+                val subFolderMap = mutableMapOf<String, MutableList<MediaScanner.AudioFile>>()
+                
+                mediaScanner.scanAudioFiles(minDuration).collect { result ->
+                    result.onSuccess { data ->
+                        if (data is MediaScanner.ScanResult) {
+                            data.audioFiles.forEach { audioFile ->
+                                when {
+                                    // Exact folder match
+                                    audioFile.folderPath == folderPath -> {
+                                        allFiles.add(audioFile)
+                                    }
+                                    // Subfolder match (including subfolders)
+                                    audioFile.folderPath.startsWith("$folderPath/") -> {
+                                        allFiles.add(audioFile)
+                                    }
                                 }
-                                // Direct subfolder (for listing subfolders)
-                                isDirectSubfolder(folderPath, audioFile.folderPath) -> {
+                                
+                                // Track direct subfolders
+                                if (isDirectSubfolder(folderPath, audioFile.folderPath)) {
                                     val subFolder = getDirectSubfolderPath(folderPath, audioFile.folderPath)
                                     val files = subFolderMap.getOrPut(subFolder) { mutableListOf() }
                                     files.add(audioFile)
@@ -153,25 +189,21 @@ class FolderBrowser @Inject constructor(
                         }
                     }
                 }
+
+                val folder = createAudioFolder(folderPath, allFiles)
+                val subFolders = subFolderMap.map { (path, files) ->
+                    createAudioFolder(path, files)
+                }.sortedBy { it.name }
+
+                val result = FolderBrowseResult(
+                    folder = folder,
+                    audioFiles = allFiles.sortedBy { it.title },
+                    subFolders = subFolders
+                )
+
+                Timber.d("Folder browse complete: ${allFiles.size} files, ${subFolders.size} subfolders")
+                emit(Result.success(result))
             }
-
-            // Create folder object
-            val folder = createAudioFolder(folderPath, allFiles)
-            
-            // Create subfolder objects
-            val subFolders = subFolderMap.map { (path, files) ->
-                createAudioFolder(path, files)
-            }.sortedBy { it.name }
-
-            val result = FolderBrowseResult(
-                folder = folder,
-                audioFiles = allFiles.sortedBy { it.title },
-                subFolders = subFolders
-            )
-
-            Timber.d("Folder browse complete: ${allFiles.size} files, ${subFolders.size} subfolders")
-            emit(Result.success(result))
-            
         } catch (e: Exception) {
             Timber.e(e, "Error browsing folder: $folderPath")
             emit(Result.failure(e))
@@ -258,6 +290,9 @@ class FolderBrowser @Inject constructor(
     /**
      * Gets folder statistics (file count, duration, size).
      * 
+     * Uses optimized queries when not including subfolders. For subfolder
+     * statistics, falls back to full scan as it requires comprehensive data.
+     * 
      * @param folderPath Absolute path to the folder
      * @param includeSubfolders Whether to include subfolders in statistics
      * @param minDuration Minimum duration in milliseconds
@@ -269,27 +304,30 @@ class FolderBrowser @Inject constructor(
         minDuration: Long = 30_000
     ): AudioFolder? = withContext(Dispatchers.IO) {
         try {
-            val files = mutableListOf<MediaScanner.AudioFile>()
-            
-            mediaScanner.scanAudioFiles(minDuration).collect { result ->
-                result.onSuccess { data ->
-                    if (data is MediaScanner.ScanResult) {
-                        files.addAll(
-                            data.audioFiles.filter { audioFile ->
-                                if (includeSubfolders) {
+            if (!includeSubfolders) {
+                // Optimized path: direct folder query
+                val files = mediaScanner.getAudioFilesInFolder(folderPath, minDuration)
+                if (files.isEmpty()) return@withContext null
+                createAudioFolder(folderPath, files)
+            } else {
+                // Need full scan for subfolder statistics
+                val files = mutableListOf<MediaScanner.AudioFile>()
+                
+                mediaScanner.scanAudioFiles(minDuration).collect { result ->
+                    result.onSuccess { data ->
+                        if (data is MediaScanner.ScanResult) {
+                            files.addAll(
+                                data.audioFiles.filter { audioFile ->
                                     audioFile.folderPath.startsWith(folderPath)
-                                } else {
-                                    audioFile.folderPath == folderPath
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
+                
+                if (files.isEmpty()) return@withContext null
+                createAudioFolder(folderPath, files)
             }
-            
-            if (files.isEmpty()) return@withContext null
-            
-            createAudioFolder(folderPath, files)
         } catch (e: Exception) {
             Timber.e(e, "Error getting folder statistics: $folderPath")
             null

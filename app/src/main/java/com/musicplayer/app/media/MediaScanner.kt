@@ -494,7 +494,7 @@ class MediaScanner @Inject constructor(
      * Queries audio files in a specific folder path from MediaStore.
      * 
      * This method is optimized to query only files in the specified folder
-     * without scanning the entire library.
+     * without scanning the entire library. Uses SQL LIKE with escaped path.
      * 
      * @param folderPath Absolute path to the folder
      * @param minDuration Minimum duration in milliseconds
@@ -523,6 +523,7 @@ class MediaScanner @Inject constructor(
                 while (cursor.moveToNext()) {
                     try {
                         val audioFile = extractAudioFileFromCursor(cursor)
+                        // Additional check to ensure exact folder match (no subfolders)
                         if (audioFile.folderPath == folderPath) {
                             audioFiles.add(audioFile)
                         }
@@ -596,6 +597,10 @@ class MediaScanner @Inject constructor(
     /**
      * Builds the selection arguments array with folder path.
      * 
+     * Uses SQL LIKE pattern to match folder path. The pattern matches files
+     * starting with the folder path. Note: This will match subfolders too,
+     * so additional filtering in code is necessary for exact folder match.
+     * 
      * @param folderPath Folder path to filter
      * @param minDuration Minimum duration in milliseconds
      * @return Array of selection argument values
@@ -604,7 +609,9 @@ class MediaScanner @Inject constructor(
         val args = mutableListOf<String>()
         
         args.add("1") // IS_MUSIC = 1
-        args.add("$folderPath/%") // DATA LIKE folderPath/%
+        // Escape special SQL characters and add pattern for LIKE query
+        val escapedPath = folderPath.replace("'", "''").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        args.add("$escapedPath/%") // DATA LIKE folderPath/%
         
         if (minDuration > 0) {
             args.add(minDuration.toString())
