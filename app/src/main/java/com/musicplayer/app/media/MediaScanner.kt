@@ -595,6 +595,28 @@ class MediaScanner @Inject constructor(
     }
 
     /**
+     * Escapes special characters in a string for use in SQL LIKE queries.
+     * 
+     * Escapes the following characters:
+     * - \ (backslash) -> \\
+     * - % (percent) -> \%
+     * - _ (underscore) -> \_
+     * 
+     * Note: ContentResolver.query() with selection args provides SQL injection
+     * protection via parameterized queries. This method only escapes LIKE
+     * special characters which have special meaning in LIKE patterns.
+     * 
+     * @param value String to escape
+     * @return Escaped string safe for SQL LIKE patterns
+     */
+    private fun escapeSqlLike(value: String): String {
+        return value
+            .replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+    }
+
+    /**
      * Builds the selection arguments array with folder path.
      * 
      * Uses SQL LIKE pattern to match folder path. The pattern matches files
@@ -613,10 +635,7 @@ class MediaScanner @Inject constructor(
         val args = mutableListOf<String>()
         
         args.add("1") // IS_MUSIC = 1
-        // Escape LIKE special characters (%, _, \) for SQL LIKE pattern matching
-        // ContentResolver.query() with selection args provides SQL injection protection
-        val escapedPath = folderPath.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        args.add("$escapedPath/%") // DATA LIKE folderPath/%
+        args.add("${escapeSqlLike(folderPath)}/%") // DATA LIKE folderPath/%
         
         if (minDuration > 0) {
             args.add(minDuration.toString())
