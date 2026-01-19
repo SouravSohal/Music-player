@@ -80,7 +80,7 @@ class MusicPlayer {
         this.progressBar.addEventListener('click', (e) => {
             if (!isNaN(this.audio.duration)) {
                 const rect = this.progressBar.getBoundingClientRect();
-                const percent = (e.clientX - rect.left) / rect.width;
+                const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                 this.audio.currentTime = percent * this.audio.duration;
             }
         });
@@ -131,7 +131,15 @@ class MusicPlayer {
         this.currentSongIndex = index;
         const song = this.playlist[index];
         
-        this.audio.src = song.src;
+        // Validate and sanitize the audio source
+        // Only allow relative paths to prevent SSRF attacks
+        if (song.src && !song.src.match(/^(https?:|\/\/|javascript:)/i)) {
+            this.audio.src = song.src;
+        } else {
+            console.error('Invalid audio source:', song.src);
+            this.audio.src = '';
+        }
+        
         this.songTitle.textContent = song.title;
         this.artistName.textContent = song.artist;
         
@@ -194,7 +202,7 @@ class MusicPlayer {
     }
     
     formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
+        if (isNaN(seconds) || seconds < 0 || !isFinite(seconds)) return '0:00';
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
