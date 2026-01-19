@@ -20,32 +20,33 @@ class MusicPlayer {
         this.currentSongIndex = 0;
         this.isPlaying = false;
         
-        // Sample playlist - using royalty-free sample audio URLs
+        // Sample playlist - Note: Replace with your own audio files
+        // For production use, host audio files on the same domain or use HTTPS URLs
         this.playlist = [
             {
                 title: 'Summer Vibes',
                 artist: 'Artist 1',
-                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+                src: 'audio/song1.mp3'  // Replace with actual audio file path
             },
             {
                 title: 'Chill Beats',
                 artist: 'Artist 2',
-                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
+                src: 'audio/song2.mp3'  // Replace with actual audio file path
             },
             {
                 title: 'Night Drive',
                 artist: 'Artist 3',
-                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'
+                src: 'audio/song3.mp3'  // Replace with actual audio file path
             },
             {
                 title: 'Acoustic Dreams',
                 artist: 'Artist 4',
-                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
+                src: 'audio/song4.mp3'  // Replace with actual audio file path
             },
             {
                 title: 'Electronic Waves',
                 artist: 'Artist 5',
-                src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3'
+                src: 'audio/song5.mp3'  // Replace with actual audio file path
             }
         ];
         
@@ -76,9 +77,11 @@ class MusicPlayer {
         
         // Progress bar
         this.progressBar.addEventListener('click', (e) => {
-            const rect = this.progressBar.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
-            this.audio.currentTime = percent * this.audio.duration;
+            if (this.audio.duration && !isNaN(this.audio.duration)) {
+                const rect = this.progressBar.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                this.audio.currentTime = percent * this.audio.duration;
+            }
         });
         
         // Audio events
@@ -140,10 +143,17 @@ class MusicPlayer {
     }
     
     play() {
-        this.audio.play();
-        this.isPlaying = true;
-        this.playIcon.style.display = 'none';
-        this.pauseIcon.style.display = 'block';
+        const playPromise = this.audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                this.isPlaying = true;
+                this.playIcon.style.display = 'none';
+                this.pauseIcon.style.display = 'block';
+            }).catch(error => {
+                console.error('Playback failed:', error);
+                this.isPlaying = false;
+            });
+        }
     }
     
     pause() {

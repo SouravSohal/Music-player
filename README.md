@@ -18,11 +18,13 @@ A modern, responsive web-based music player built with HTML, CSS, and JavaScript
 
 ## How to Use
 
-1. Open `index.html` in a web browser
-2. The player will load with a default playlist of sample songs
-3. Click the play button to start playback
-4. Use the controls to navigate between songs, adjust volume, or seek through the track
-5. Click on any song in the playlist to play it directly
+1. Create an `audio` folder in the same directory as `index.html`
+2. Add your MP3 audio files to the `audio` folder (e.g., `song1.mp3`, `song2.mp3`, etc.)
+3. Open `script.js` and update the `playlist` array with your song information
+4. Open `index.html` in a web browser
+5. Click the play button to start playback
+6. Use the controls to navigate between songs, adjust volume, or seek through the track
+7. Click on any song in the playlist to play it directly
 
 ## Files Structure
 
@@ -34,16 +36,19 @@ A modern, responsive web-based music player built with HTML, CSS, and JavaScript
 
 To add your own music:
 
-1. Open `script.js`
-2. Find the `playlist` array in the `MusicPlayer` constructor
-3. Add your song objects with the following format:
+1. Create an `audio` folder in the same directory as `index.html`
+2. Place your MP3 files in the `audio` folder
+3. Open `script.js` and find the `playlist` array in the `MusicPlayer` constructor
+4. Update the song objects with your song information:
 ```javascript
 {
-    title: 'Song Title',
+    title: 'Your Song Title',
     artist: 'Artist Name',
-    src: 'path/to/audio/file.mp3'
+    src: 'audio/your-song-file.mp3'
 }
 ```
+
+**Note:** The audio files should be in a supported format (MP3, OGG, WAV). Make sure the file paths in the `src` property match your actual file locations.
 
 ## Browser Compatibility
 
