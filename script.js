@@ -110,10 +110,17 @@ class MusicPlayer {
             if (index === this.currentSongIndex) {
                 li.classList.add('active');
             }
-            li.innerHTML = `
-                <div class="playlist-item-title">${song.title}</div>
-                <div class="playlist-item-artist">${song.artist}</div>
-            `;
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'playlist-item-title';
+            titleDiv.textContent = song.title;
+            
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'playlist-item-artist';
+            artistDiv.textContent = song.artist;
+            
+            li.appendChild(titleDiv);
+            li.appendChild(artistDiv);
             li.addEventListener('click', () => this.loadSong(index, true));
             this.playlistEl.appendChild(li);
         });
